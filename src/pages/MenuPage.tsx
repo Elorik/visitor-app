@@ -5,7 +5,6 @@ import { DishCard } from "../components/DishCard";
 import { FiltersBar } from "../components/FiltersBar";
 import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
 import { WaiterWidget } from "../components/WaiterWidget";
-import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
 
 export function MenuPage() {
   const [dishes, setDishes] = useState<Dish[]>([]);
