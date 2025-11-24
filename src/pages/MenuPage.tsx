@@ -5,6 +5,7 @@ import { DishCard } from "../components/DishCard";
 import { FiltersBar } from "../components/FiltersBar";
 import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
 import { WaiterWidget } from "../components/WaiterWidget";
+import { VoiceAssistant } from "../voice/VoiceAssistant";
 
 export function MenuPage() {
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -12,6 +13,8 @@ export function MenuPage() {
   const [category, setCategory] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState("");
+
+  const vaRef = useRef<VoiceAssistant | null>(null);
 
   // стандартне завантаження по локальних фільтрах
   const load = async () => {
