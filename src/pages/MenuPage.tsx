@@ -5,6 +5,7 @@ import { DishCard } from "../components/DishCard";
 import { FiltersBar } from "../components/FiltersBar";
 import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
 import { WaiterWidget } from "../components/WaiterWidget";
+import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
 
 export function MenuPage() {
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -26,28 +27,8 @@ export function MenuPage() {
     } catch {
       // мок для демонстрації, якщо бек не працює
       setDishes([
-        {
-          id: 1,
-          name: "Маргарита",
-          description: "Піца з сиром та томатами",
-          price: 180,
-          category: "pizza",
-          is_available: true,
-          rating: 4.5,
-          tags: ["сир", "томат"],
-          imageUrl: "",
-        },
-        {
-          id: 2,
-          name: "Борщ",
-          description: "Класичний український борщ",
-          price: 120,
-          category: "soup",
-          is_available: true,
-          rating: 4.8,
-          tags: ["м'ясо", "овочі"],
-          imageUrl: "",
-        },
+        { id: 1, name: "Маргарита", description: "Піца з сиром та томатами", price: 180, category: "pizza", is_available: true, rating: 4.5, tags: ["сир", "томат"], imageUrl: "" },
+        { id: 2, name: "Борщ", description: "Класичний український борщ", price: 120, category: "soup", is_available: true, rating: 4.8, tags: ["м'ясо", "овочі"], imageUrl: "" },
       ]);
     } finally {
       setLoading(false);
@@ -65,10 +46,17 @@ export function MenuPage() {
       });
       setDishes(data);
 
-      if (vf.category) setCategory(vf.category);
-      if (vf.maxPrice != null) setMaxPrice(String(vf.maxPrice));
+      //if (vf.category) setCategory(vf.category);
+      //if (vf.maxPrice != null) setMaxPrice(String(vf.maxPrice));
+      // Те саме але трохи змінив Нечипор
+      setCategory(vf.category ? vf.category.toLowerCase() : "");
+      setMaxPrice(vf.maxPrice != null ? String(vf.maxPrice) : "");
+
     } catch {
-      // можна лишити порожнім або повторити мок
+      setDishes([
+        { id: 1, name: "Маргарита", description: "Піца з сиром та томатами", price: 180, category: "pizza", is_available: true, rating: 4.5, tags: ["сир", "томат"], imageUrl: "" },
+        { id: 2, name: "Борщ", description: "Класичний український борщ", price: 120, category: "soup", is_available: true, rating: 4.8, tags: ["м'ясо", "овочі"], imageUrl: "" },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -81,9 +69,21 @@ export function MenuPage() {
   }, [category, maxPrice, sort]);
 
   // підписка на голосовий асистент
+  // Змінив Нечипор для голосового вводу
   useEffect(() => {
-    const unsub = subscribeVoiceFilters(loadWithFilters);
-    return unsub;
+    const unsub = subscribeVoiceFilters((vf: VoiceFilters) => {
+      loadWithFilters(vf);
+    });
+    return () => unsub();
+  }, []);
+
+  // Додав Нечипор для голосового вводу
+  useEffect(() => {
+    vaRef.current = new VoiceAssistant({
+      onText: (t) => { (window as any).__lastVoiceText = t; },
+      onStateChange: (s) => { console.log("voice state:", s); },
+    });
+    return () => { vaRef.current?.stop(); vaRef.current = null; };
   }, []);
 
   return (
@@ -104,6 +104,11 @@ export function MenuPage() {
             <DishCard key={dish.id} dish={dish} />
           ))}
         </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button onClick={() => vaRef.current?.start()}>🎤 Голос</button>
+        <button onClick={() => vaRef.current?.stop()}>⏹ Стоп</button>
       </div>
 
       <WaiterWidget />
