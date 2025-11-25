@@ -1,106 +1,111 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { Dish, VoiceFilters } from "../types";
-import { getDishes } from "../api/dishes";
 import { DishCard } from "../components/DishCard";
 import { FiltersBar } from "../components/FiltersBar";
-import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
 import { WaiterWidget } from "../components/WaiterWidget";
 import { VoiceAssistant } from "../voice/VoiceAssistant";
+import { subscribeVoiceFilters } from "../voice/VoiceIntegration";
+
+// Mock dishes
+import { mockDishes } from "../data/mockDishes";
 
 export function MenuPage() {
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [dishes, setDishes] = useState<Dish[]>(mockDishes);
   const [category, setCategory] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState("");
+  const [voiceFilters, setVoiceFilters] = useState<VoiceFilters | null>(null);
 
   const vaRef = useRef<VoiceAssistant | null>(null);
 
-  // стандартне завантаження по локальних фільтрах
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await getDishes({
-        category: category || undefined,
-        maxPrice: maxPrice ? Number(maxPrice) : undefined,
-        ordering: sort || undefined,
-      });
-      setDishes(data);
-    } catch {
-      // мок для демонстрації, якщо бек не працює
-      setDishes([
-        { id: 1, name: "Маргарита", description: "Піца з сиром та томатами", price: 180, category: "pizza", is_available: true, rating: 4.5, tags: ["сир", "томат"], imageUrl: "" },
-        { id: 2, name: "Борщ", description: "Класичний український борщ", price: 120, category: "soup", is_available: true, rating: 4.8, tags: ["м'ясо", "овочі"], imageUrl: "" },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  const handleCategoryChange = (cat: string) => {
+    setCategory(cat);
+    setVoiceFilters(prev => prev ? { ...prev, tags: [] } : null);
   };
 
-  // завантаження за фільтрами від голосового асистента
-  const loadWithFilters = async (vf: VoiceFilters) => {
-    setLoading(true);
-    try {
-      const data = await getDishes({
-        category: vf.category || undefined,
-        maxPrice: vf.maxPrice ?? undefined,
-        tags: vf.tags?.length ? vf.tags : undefined,
-      });
-      setDishes(data);
+  const filterDishes = (filters: { category?: string; maxPrice?: number; tags?: string[] }) => {
+    let result = [...mockDishes];
+    
 
-      //if (vf.category) setCategory(vf.category);
-      //if (vf.maxPrice != null) setMaxPrice(String(vf.maxPrice));
-      // Те саме але трохи змінив Нечипор
-      setCategory(vf.category ? vf.category.toLowerCase() : "");
-      setMaxPrice(vf.maxPrice != null ? String(vf.maxPrice) : "");
-
-    } catch {
-      setDishes([
-        { id: 1, name: "Маргарита", description: "Піца з сиром та томатами", price: 180, category: "pizza", is_available: true, rating: 4.5, tags: ["сир", "томат"], imageUrl: "" },
-        { id: 2, name: "Борщ", description: "Класичний український борщ", price: 120, category: "soup", is_available: true, rating: 4.8, tags: ["м'ясо", "овочі"], imageUrl: "" },
-      ]);
-    } finally {
-      setLoading(false);
+    if (filters.category && filters.category !== "all") {
+      result = result.filter(d => d.category === filters.category);
     }
+
+    if (filters.maxPrice != null) {
+      result = result.filter(d => d.price <= filters.maxPrice!);
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      const wanted = filters.tags.map(t => String(t).toLowerCase());
+      result = result.filter(d => {
+        const dishTagsLower = (d.tags || []).map(x => String(x).toLowerCase());
+        // OR: хоч би один тег співпав
+        return wanted.some(w => dishTagsLower.includes(w));
+        // AND замість OR:
+        // return wanted.every(w => dishTagsLower.includes(w));
+      });
+    }
+
+    if (sort === "-rating") result.sort((a, b) => b.rating - a.rating);
+    if (sort === "price") result.sort((a, b) => a.price - b.price);
+    if (sort === "-price") result.sort((a, b) => b.price - a.price);
+
+    setDishes(result);
   };
 
-  // виклик API при зміні фільтрів з інтерфейсу
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, maxPrice, sort]);
+    const vf = voiceFilters;
 
-  // підписка на голосовий асистент
-  // Змінив Нечипор для голосового вводу
+    filterDishes({
+      category: category || vf?.category || undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : vf?.maxPrice ?? undefined,
+      tags: vf?.tags?.length ? vf.tags : undefined,
+    });
+  }, [category, maxPrice, sort, voiceFilters]);
+
   useEffect(() => {
     const unsub = subscribeVoiceFilters((vf: VoiceFilters) => {
-      loadWithFilters(vf);
+      console.log("VOICE FILTERS:", vf);
+
+      // 1) Спочатку повністю скидаємо UI-фільтри
+      setCategory("");
+      setMaxPrice("");
+      setSort("");
+
+      // 2) Потім підставляємо нові значення з голосу
+      if (vf.category) setCategory(vf.category);
+      if (vf.maxPrice != null) setMaxPrice(String(vf.maxPrice));
+
+      // tags ми не пишемо в UI-фільтри, бо вони окремо ходять через voiceFilters
+      setVoiceFilters(vf);
     });
+
     return () => unsub();
   }, []);
 
-  // Додав Нечипор для голосового вводу
   useEffect(() => {
     vaRef.current = new VoiceAssistant({
-      onText: (t) => { (window as any).__lastVoiceText = t; },
-      onStateChange: (s) => { console.log("voice state:", s); },
+      onText: (t) => { window.__lastVoiceText = t; },
+      onStateChange: (s) => console.log("voice state:", s),
     });
-    return () => { vaRef.current?.stop(); vaRef.current = null; };
+
+    return () => vaRef.current?.stop();
   }, []);
 
   return (
     <div className="layout-flex" style={{ display: "flex", gap: 16 }}>
       <div style={{ flex: 1 }}>
         <h2 className="page-title">Меню</h2>
+
         <FiltersBar
           category={category}
-          setCategory={setCategory}
+          setCategory={handleCategoryChange}
           maxPrice={maxPrice}
           setMaxPrice={setMaxPrice}
           sort={sort}
           setSort={setSort}
         />
-        {loading && <div>Завантаження страв...</div>}
+
         <div className="dish-grid">
           {dishes.map((dish) => (
             <DishCard key={dish.id} dish={dish} />

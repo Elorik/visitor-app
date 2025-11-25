@@ -6,6 +6,9 @@ import { createReview } from "../api/reviews";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 
+// ІМПОРТУЄМО МОК-ДАНІ
+import { mockDishes } from "../data/mockDishes";
+
 export function DishDetailsPage() {
   const { id } = useParams();
   const dishId = Number(id);
@@ -27,23 +30,10 @@ export function DishDetailsPage() {
       setDish(d);
       setReviews(r);
     } catch {
-      // fallback, якщо бек не працює
-      const mock: Dish = {
-        id: dishId,
-        name: dishId === 2 ? "Борщ" : "Маргарита",
-        description:
-          dishId === 2
-            ? "Класичний український борщ."
-            : "Піца з сиром та томатами.",
-        price: dishId === 2 ? 120 : 180,
-        category: dishId === 2 ? "soup" : "pizza",
-        is_available: true,
-        rating: 4.7,
-        tags: ["демо"],
-        imageUrl: "",
-      };
-      setDish(mock);
-      setReviews([]);
+      // ⚡ Якщо бекенд не працює — шукаємо у mockDishes
+      const localDish = mockDishes.find((d) => d.id === dishId) || null;
+      setDish(localDish);
+      setReviews([]); // моків для відгуків немає
     } finally {
       setLoading(false);
     }

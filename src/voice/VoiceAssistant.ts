@@ -32,8 +32,8 @@ export class VoiceAssistant {
     this.initRecognition();
   }
 
-  private setWaiterState(s: "idle" | "listening") {
-    try { if (window.setWaiterState) window.setWaiterState(s); } catch {}
+  private setWaiterState(s: AssistantState) {
+    try { window.setWaiterState?.(s); } catch {}
     this.onStateChange?.(s);
   }
 
@@ -51,38 +51,31 @@ export class VoiceAssistant {
 
     this.recognition.onstart = () => this.setWaiterState("listening");
     this.recognition.onend = () => this.setWaiterState("idle");
-    this.recognition.onerror = (ev: any) => { console.error("speech error", ev); this.setWaiterState("idle"); };
+    this.recognition.onerror = () => this.setWaiterState("idle");
 
     this.recognition.onresult = (ev: any) => {
       const text = ev.results?.[0]?.[0]?.transcript?.trim() ?? "";
-      if (!text) {
-        this.setWaiterState("idle");
-        return;
+      if (!text) return;
+
+      const lower = text.toLowerCase();
+      this.onText?.(lower);
+      window.__lastVoiceText = lower;
+
+      const parsed = parseCommandToFilters(lower);
+
+      if (parsed) {
+        this.sendFiltersToFrontend(parsed);
       }
-      this.onText?.(text);
-      window.__lastVoiceText = text;
-      this.processRecognizedText(text.toLowerCase());
     };
   }
 
   start() {
-    if (!this.recognition) this.initRecognition();
-    try {
-      this.recognition?.start();
-      this.setWaiterState("listening");
-    } catch (e) {
-      console.error("start recognition error", e);
-    }
+    try { this.recognition?.start(); } catch {}
   }
 
   stop() {
-    try {
-      this.recognition?.stop();
-    } catch (e) {
-      console.error("stop recognition error", e);
-    } finally {
-      this.setWaiterState("idle");
-    }
+    try { this.recognition?.stop(); } catch {}
+    this.setWaiterState("idle");
   }
 
   private sendFiltersToFrontend(filters: VoiceFilters) {
@@ -96,48 +89,57 @@ export class VoiceAssistant {
       console.error("sendFiltersToFrontend error", e);
     }
   }
-
-  private processRecognizedText(text: string) {
-    const parsed = parseCommandToFilters(text);
-    if (parsed) {
-      this.sendFiltersToFrontend(parsed);
-    } else if (text.includes("порада") || text.includes("рекомендуй") || text.includes("популяр")) {
-      this.sendFiltersToFrontend({ category: null, maxPrice: null, tags: ["popular"] });
-    }
-  }
 }
 
-/* ----------------- парсинг команд ----------------- */
+/* ---------------------- PARSER ---------------------- */
 
 export function parseCommandToFilters(text: string): VoiceFilters | null {
-  const t = text.toLowerCase();
-  const category = extractCategoryFromText(t);
-  const maxPrice = extractPriceFromText(t);
-  const tags: string[] = [];
-
-  if (t.includes("гостр") || t.includes("пікант")) tags.push("spicy");
-  if (t.includes("солод") || t.includes("десерт")) tags.push("sweet");
-  if (t.includes("вегет")) tags.push("vegetarian");
-  if (t.includes("популяр") || t.includes("рекоменд")) tags.push("popular");
+  const category = extractCategoryFromText(text);
+  const maxPrice = extractPriceFromText(text);
+  const tags = extractTagsFromText(text);
 
   if (!category && !maxPrice && tags.length === 0) return null;
+
   return { category, maxPrice, tags };
 }
 
+/* --- Categories --- */
 function extractCategoryFromText(t: string): string | null {
-  if (!t) return null;
-  if (t.includes("піц") || t.includes("піца")) return "pizza";
+  if (t.includes("піц")) return "pizza";
   if (t.includes("суп")) return "soup";
   if (t.includes("салат")) return "salad";
-  if (t.includes("десерт") || t.includes("десерти")) return "dessert";
+  if (t.includes("десерт") || t.includes("солодке")) return "dessert";
+  if (t.includes("напій") || t.includes("пити") || t.includes("пити щось") || t.includes("напої"))  return "drink";
   return null;
 }
 
+/* --- Price --- */
 function extractPriceFromText(t: string): number | null {
-  if (!t) return null;
-  const m = t.match(/(?:до|менш(?:е|ий)?)\s*([0-9]{1,5})/);
-  if (m && m[1]) return Number(m[1]);
-  const m2 = t.match(/([0-9]{1,5})\s*(грив|грн|uah)/);
-  if (m2 && m2[1]) return Number(m2[1]);
+  const match = t.match(/(?:до|менше)\s*(\d{1,5})/);
+  if (match) return Number(match[1]);
   return null;
+}
+
+/* --- Tags --- */
+function extractTagsFromText(t: string): string[] {
+  const tags: string[] = [];
+  const txt = t.toLowerCase();
+
+  // мапа ключових слів -> canonical tag
+  const map: Array<[RegExp, string]> = [
+    [/(гостр|пікант|остр)/, "spicy"],
+    [/(солод|десерт|торт|тіраміс)/, "sweet"],
+    [/(вегет|веган)/, "vegetarian"],
+    [/(легк|легкий|легке)/, "light"],
+    [/(\bм'яс|мяс|курк|ялович|свин)/, "meat"],
+    [/(великий|велика порція|багато)/, "big"],
+    [/(холод|охолодж|з льодом|ледь)/, "cold"],
+    [/(популяр|recommend|рекоменд)/, "popular"],
+  ];
+
+  for (const [re, key] of map) {
+    if (re.test(txt) && !tags.includes(key)) tags.push(key);
+  }
+
+  return tags;
 }

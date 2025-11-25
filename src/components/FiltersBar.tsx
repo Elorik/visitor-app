@@ -22,9 +22,11 @@ export function FiltersBar({
         value={category}
         onChange={(e) => setCategory(e.target.value)}
       >
-        <option value="">Усі категорії</option>
+        <option value="all">Усі категорії</option>
         <option value="pizza">Піца</option>
         <option value="soup">Супи</option>
+        <option value="dessert">Десерти</option>
+        <option value="salad">Салати</option>
         <option value="drink">Напої</option>
       </select>
 
