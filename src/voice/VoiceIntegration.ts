@@ -18,6 +18,9 @@ declare global {
 }
 
 // Викликатиме модуль Нечипора
+// Нечипор трохи змінив
 window.applyVoiceFiltersFromVoice = (vf: VoiceFilters) => {
-  callbacks.forEach((cb) => cb(vf));
+  callbacks.forEach((cb) => {
+    try { cb(vf); } catch (e) { console.error("voice callback error", e); }
+  });
 };
