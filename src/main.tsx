@@ -11,6 +11,7 @@ import { CheckoutPage } from "./pages/CheckoutPage";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import "./App.css";
+import {AdminPage} from "./pages/AdminPage.tsx";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -25,6 +26,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
               <Route path="profile" element={<ProfilePage />} />
               <Route path="dish/:id" element={<DishDetailsPage />} />
               <Route path="checkout" element={<CheckoutPage />} />
+              <Route path="admin" element={<AdminPage />} />
             </Route>
           </Routes>
         </BrowserRouter>
