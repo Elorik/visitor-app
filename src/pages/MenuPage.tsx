@@ -23,9 +23,7 @@ declare global {
 
 export function MenuPage() {
   const [allDishes, setAllDishes] = useState<Dish[]>(mockDishes);
-  const [categoryGroups, setCategoryGroups] = useState<Record<string, Dish[]>>(
-    {}
-  );
+  const [, setCategoryGroups] = useState<Record<string, Dish[]>>({});
   const [filteredGroups, setFilteredGroups] = useState<Record<string, Dish[]>>(
     {}
   );
