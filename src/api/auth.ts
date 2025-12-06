@@ -1,25 +1,30 @@
+// src/api/auth.ts
 import { api } from "./client";
 import type { User } from "../types";
 
-export async function register(
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+// логін: username + password
+export async function login(
   username: string,
-  email: string,
   password: string
-) {
-  const { data } = await api.post<{ user: User; token: string }>(
-    "/api/register/",
-    { username, email, password }
-  );
+): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/api/login/", {
+    username,
+    password,
+  });
   return data;
 }
 
-export async function login(username: string, password: string) {
-  const { data } = await api.post<{ user: User; token: string }>(
-    "/api/login/",
-    {
-      username,
-      password,
-    }
-  );
+// реєстрація: об’єкт з полями
+export async function register(payload: {
+  username: string;
+  password: string;
+  email?: string;
+}): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/api/register/", payload);
   return data;
 }

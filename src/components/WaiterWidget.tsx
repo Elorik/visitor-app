@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 type WaiterState = "idle" | "listening" | "speaking";
 
-// Розширюємо Window для setWaiterState
 declare global {
   interface Window {
     setWaiterState?: (state: WaiterState) => void;
@@ -25,23 +24,18 @@ export function WaiterWidget() {
 
   return (
     <div className="waiter">
-      <div
-        style={{
-          width: 70,
-          height: 70,
-          borderRadius: "50%",
-          border: "3px solid var(--primary)",
-          margin: "0 auto 8px",
-          background:
-            state === "listening"
-              ? "var(--primary-soft)"
-              : state === "speaking"
-              ? "rgba(37,99,235,0.1)"
-              : "transparent",
-          transition: "background 0.3s ease",
-        }}
-      />
-      <div style={{ textAlign: "center" }}>{text}</div>
+      <div className="waiter-avatar">
+        <div className={`waiter-circle ${state}`}>
+          <div className="waiter-face">
+            <div className="waiter-eyes">
+              <span />
+              <span />
+            </div>
+            <div className="waiter-mouth" />
+          </div>
+        </div>
+      </div>
+      <div className="waiter-text">{text}</div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             validated_data['username'],
             validated_data['email'],
-            validated_data['password']
+            validated_data['password'],
         )
         return user
 
@@ -45,7 +45,16 @@ class DishListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Dish
-        fields = ('id', 'name', 'price', 'category', 'rating', 'is_available', 'photo', 'tags')
+        fields = (
+            'id',
+            'name',
+            'price',
+            'category',
+            'rating',
+            'is_available',
+            'photo',
+            'tags',
+        )
 
 
 class DishDetailSerializer(DishListSerializer):
@@ -62,6 +71,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ('dish', 'quantity', 'price', 'dish_name')
+        read_only_fields = ('price',)
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -70,29 +80,32 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('id', 'user', 'user_info', 'date', 'sum', 'status', 'items')
-        read_only_fields = ('user', 'sum', 'status')
+        fields = ('id', 'user', 'user_info', 'date', 'sums', 'status', 'items')
+        # user і sums виставляємо самі, status бере дефолт із моделі
+        read_only_fields = ('user', 'sums', 'status')
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
+        user = self.context['request'].user
 
-        order = Order.objects.create(**validated_data, user=self.context['request'].user)
+        # створюємо замовлення без суми
+        order = Order.objects.create(user=user, **validated_data)
+
         total_sum = 0
-
         for item_data in items_data:
             dish = item_data['dish']
             quantity = item_data['quantity']
+            price = dish.price
 
-            item_price = dish.price
             OrderItem.objects.create(
                 order=order,
                 dish=dish,
                 quantity=quantity,
-                price=item_price
+                price=price,
             )
-            total_sum += item_price * quantity
+            total_sum += price * quantity
 
-        order.sum = total_sum
+        order.sums = total_sum
         order.save()
 
         return order

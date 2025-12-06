@@ -1,0 +1,26 @@
+<svg width="150" height="40" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="anna-logo-gradient" x1="0" y1="0" x2="150" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4D48A"></stop>
+      <stop offset="0.5" stop-color="#D5AF6E"></stop>
+      <stop offset="1" stop-color="#997241"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- коло-тарілка -->
+  <circle cx="22" cy="20" r="11.5" stroke="url(#anna-logo-gradient)" stroke-width="1.5" opacity="0.9"></circle>
+  <circle cx="22" cy="20" r="6.5" fill="url(#anna-logo-gradient)" opacity="0.9"></circle>
+
+  <!-- підкреслення -->
+  <path d="M10 30 C 22 34, 40 36, 70 32" stroke="rgba(213,175,110,0.7)" stroke-width="1.2" stroke-linecap="round"></path>
+
+  <!-- ANNA -->
+  <text x="52" y="23" fill="url(#anna-logo-gradient)" font-size="18" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" letter-spacing="0.38em">
+    ANNA
+  </text>
+
+  <!-- дрібний підпис -->
+  <text x="53" y="32" fill="#B39A70" font-size="8" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" letter-spacing="0.18em">
+    RESTAURANT
+  </text>
+</svg>

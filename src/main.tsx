@@ -10,8 +10,10 @@ import { DishDetailsPage } from "./pages/DishDetailsPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { AdminPage } from "./pages/AdminPage";
+import { HomePage } from "./pages/HomePage";
+import "./index.css";
 import "./App.css";
-import {AdminPage} from "./pages/AdminPage.tsx";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
@@ -20,7 +22,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
-              <Route index element={<MenuPage />} />
+              <Route index element={<HomePage />} />
+              <Route path="menu" element={<MenuPage />} />
               <Route path="auth" element={<AuthPage />} />
               <Route path="cart" element={<CartPage />} />
               <Route path="profile" element={<ProfilePage />} />

@@ -1,75 +1,114 @@
-import { Link, Outlet } from "react-router-dom";
+// src/components/Layout.tsx
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { AnnaLogo } from "./AnnaLogo";
 
 export function Layout() {
   const { user, logout } = useAuth();
   const { items } = useCart();
+  const location = useLocation();
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const userInitial = user?.username?.[0]?.toUpperCase() ?? "U";
+
+  // плавність між сторінками
+  useEffect(() => {
+    document.body.classList.add("page-fade");
+    const t = setTimeout(
+      () => document.body.classList.remove("page-fade"),
+      250
+    );
+    return () => clearTimeout(t);
+  }, [location.pathname]);
+
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    "nav-link" + (isActive ? " active" : "");
 
   return (
-    <div>
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 24px",
-          borderBottom: "1px solid #e5e7eb",
-          backgroundColor: "rgba(255,255,255,0.9)",
-          backdropFilter: "blur(10px)",
-          boxShadow: "0 2px 8px rgba(15,23,42,0.06)",
-        }}
-      >
-        <Link
-          to="/"
-          style={{
-            fontWeight: 600,
-            fontSize: 20,
-            letterSpacing: "0.03em",
-          }}
-        >
-          Restaurant
-        </Link>
+    <div className="app-root layout-wrapper">
+      {/* HEADER */}
+      <header className="site-header">
+        <div className="site-header-inner">
+          {/* лого зліва */}
+          <Link to="/" className="site-logo">
+            <AnnaLogo className="anna-logo" />
+          </Link>
 
-        <nav
-          style={{
-            display: "flex",
-            gap: "14px",
-            alignItems: "center",
-            fontSize: 14,
-          }}
-        >
-          <Link to="/">Меню</Link>
-          <Link to="/cart">Кошик ({cartCount})</Link>
-          {user && <Link to="/profile">Мій кабінет</Link>}
-          {!user ? (
-            <Link
-              to="/auth"
-              className="btn btn-outline"
-              style={{ padding: "6px 14px", fontSize: 13 }}
-            >
-              Увійти
-            </Link>
-          ) : (
-            <button
-              onClick={logout}
-              className="btn btn-outline"
-              style={{ padding: "6px 14px", fontSize: 13 }}
-            >
-              Вийти
-            </button>
-          )}
-        </nav>
+          {/* нав по центру */}
+          <nav className="site-nav">
+            <NavLink to="/" className={navClass} end>
+              Головна
+            </NavLink>
+
+            <NavLink to="/menu" className={navClass}>
+              Меню
+            </NavLink>
+
+            <NavLink to="/cart" className={navClass}>
+              Кошик <span className="nav-pill">{cartCount}</span>
+            </NavLink>
+
+            {user && (
+              <NavLink to="/profile" className={navClass}>
+                Мій кабінет
+              </NavLink>
+            )}
+          </nav>
+
+          {/* правий край – юзер + кнопка */}
+          <div className="site-header-right">
+            {user && (
+              <div className="user-chip">
+                <div className="user-avatar">{userInitial}</div>
+                <span className="user-name">{user.username}</span>
+              </div>
+            )}
+
+            {!user ? (
+              <Link to="/auth" className="btn btn-outline small-btn">
+                Увійти
+              </Link>
+            ) : (
+              <button onClick={logout} className="btn btn-outline small-btn">
+                Вийти
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
+      {/* MAIN */}
       <main className="app-main">
         <Outlet />
       </main>
+
+      {/* FOOTER */}
+      <footer className="site-footer fixed-footer">
+        <div className="site-footer-inner">
+          <div className="site-footer__left">
+            <div className="site-footer__title">Зв’язатися з нами</div>
+            <div className="site-footer__contacts">
+              <a href="tel:+380930558669">📞 +38 (093) 055 86 69</a>
+              <span>·</span>
+              <a href="mailto:info@restaurant.demo">✉ info@restaurant.demo</a>
+            </div>
+          </div>
+
+          <div className="site-footer__right">
+            <span className="site-footer__label">Ми в мережі</span>
+            <div className="site-footer__socials">
+              <a href="https://instagram.com" target="_blank" rel="noreferrer">
+                📸 Instagram
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noreferrer">
+                ▶ YouTube
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

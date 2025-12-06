@@ -1,3 +1,4 @@
+// src/pages/AuthPage.tsx
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,15 +22,16 @@ export function AuthPage() {
     setLoading(true);
 
     try {
+      let resp;
+
       if (mode === "login") {
-        const { user, token } = await apiLogin(username, password);
-        login(user, token);
+        resp = await apiLogin(username, password);
       } else {
-        const { user, token } = await apiRegister(username, email, password);
-        login(user, token);
+        resp = await apiRegister({ username, password, email });
       }
 
-      navigate("/"); // після успішного логіну/реєстрації
+      login(resp.user, resp.token);
+      navigate("/");
     } catch {
       setError("Помилка авторизації. Перевір дані або бекенд.");
     } finally {
@@ -38,86 +40,77 @@ export function AuthPage() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "400px",
-        margin: "40px auto",
-        padding: "24px",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-      }}
-    >
-      <h2 style={{ marginBottom: "16px" }}>
-        {mode === "login" ? "Вхід" : "Реєстрація"}
-      </h2>
+    <div className="auth-page">
+      <div className="panel auth-panel">
+        <h2 className="page-title">
+          {mode === "login" ? "Вхід" : "Реєстрація"}
+        </h2>
 
-      <form
-        onSubmit={onSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-      >
-        <input
-          placeholder="Логін"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          style={{ padding: "8px" }}
-        />
-
-        {mode === "register" && (
+        <form onSubmit={onSubmit} className="form-vertical">
           <input
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            className="input"
+            placeholder="Логін"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
-            style={{ padding: "8px" }}
           />
-        )}
 
-        <input
-          placeholder="Пароль"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: "8px" }}
-        />
+          {mode === "register" && (
+            <input
+              className="input"
+              placeholder="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          )}
 
-        {error && <div style={{ color: "red", fontSize: "14px" }}>{error}</div>}
+          <input
+            className="input"
+            placeholder="Пароль"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: "10px",
-            marginTop: "4px",
-            cursor: "pointer",
-          }}
-        >
-          {loading
-            ? "Обробка..."
-            : mode === "login"
-            ? "Увійти"
-            : "Зареєструватись"}
-        </button>
-      </form>
+          {error && <div className="form-error">{error}</div>}
 
-      <div style={{ marginTop: "12px", fontSize: "14px" }}>
-        {mode === "login" ? (
-          <span
-            style={{ color: "blue", cursor: "pointer" }}
-            onClick={() => setMode("register")}
-          >
-            Немає акаунта? Перейти до реєстрації
-          </span>
-        ) : (
-          <span
-            style={{ color: "blue", cursor: "pointer" }}
-            onClick={() => setMode("login")}
-          >
-            Вже є акаунт? Перейти до входу
-          </span>
-        )}
+          <div className="form-actions-center">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary"
+            >
+              {loading
+                ? "Обробка..."
+                : mode === "login"
+                ? "Увійти"
+                : "Зареєструватись"}
+            </button>
+          </div>
+        </form>
+
+        <div className="auth-toggle">
+          {mode === "login" ? (
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => setMode("register")}
+            >
+              Немає акаунта? Перейти до реєстрації
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => setMode("login")}
+            >
+              Вже є акаунт? Перейти до входу
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

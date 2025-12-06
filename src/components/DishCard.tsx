@@ -1,57 +1,74 @@
-import { Link } from "react-router-dom";
+// src/components/DishCard.tsx
 import type { Dish } from "../types";
 import { useCart } from "../context/CartContext";
+import { Link } from "react-router-dom";
 
-export function DishCard({ dish }: { dish: Dish }) {
+interface Props {
+  dish: Dish;
+}
+
+export function DishCard({ dish }: Props) {
   const { add } = useCart();
 
+  const handleAdd = () => {
+    add(dish);
+  };
+
+  const shortDescription =
+    dish.description && dish.description.length > 90
+      ? dish.description.slice(0, 90) + "…"
+      : dish.description || "";
+
+  const hasImage = !!dish.imageUrl;
+
   return (
-    <div
-      className="card"
-      style={{ width: 230, display: "flex", flexDirection: "column", gap: 4 }}
-    >
-      {dish.imageUrl && (
-        <img
-          src={dish.imageUrl}
-          alt={dish.name}
-          style={{
-            width: "100%",
-            height: 130,
-            objectFit: "cover",
-            borderRadius: 8,
-          }}
-        />
+    <article className="dish-card">
+      {hasImage && (
+        <div className="dish-card__image-wrap">
+          <img
+            src={dish.imageUrl}
+            alt={dish.name}
+            className="dish-card__image"
+          />
+        </div>
       )}
-      <div style={{ fontWeight: 600 }}>{dish.name}</div>
-      <div style={{ fontSize: 13, color: "#6b7280" }}>
-        {dish.description.slice(0, 60)}...
+
+      <div className="dish-card__body">
+        <div className="dish-card__header">
+          <h3 className="dish-card__title">{dish.name}</h3>
+          <div className="dish-card__price">
+            {dish.price.toFixed(0)} грн <span>/ порція</span>
+          </div>
+        </div>
+
+        {shortDescription && (
+          <p className="dish-card__description">{shortDescription}</p>
+        )}
+
+        <div className="dish-card__meta">
+          <div className="dish-card__rating">
+            {dish.rating ? `${dish.rating.toFixed(1)} ★` : "Без рейтингу"}
+          </div>
+          <div className="dish-card__badge badge-muted">
+            {dish.is_available ? "В наявності" : "Тимчасово немає"}
+          </div>
+        </div>
+
+        <div className="dish-card__actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleAdd}
+            disabled={!dish.is_available}
+          >
+            Додати в кошик
+          </button>
+
+          <Link to={`/dish/${dish.id}`} className="btn btn-ghost">
+            Детальніше
+          </Link>
+        </div>
       </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 14,
-          marginTop: 4,
-        }}
-      >
-        <span>{dish.price} грн</span>
-        <span>⭐ {dish.rating.toFixed(1)}</span>
-      </div>
-      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-        <Link className="btn btn-outline" to={`/dish/${dish.id}`}>
-          Деталі
-        </Link>
-        <button
-          className="btn"
-          onClick={() => add(dish)}
-          disabled={!dish.is_available}
-          style={
-            dish.is_available ? {} : { opacity: 0.6, cursor: "not-allowed" }
-          }
-        >
-          {dish.is_available ? "У кошик" : "Немає"}
-        </button>
-      </div>
-    </div>
+    </article>
   );
 }

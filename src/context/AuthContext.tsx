@@ -14,24 +14,38 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+function safeParseJSON<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  if (raw === "undefined" || raw === "null") return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem("token");
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem("user");
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      setAuthToken(savedToken);
+    return safeParseJSON<User>(savedUser);
+  });
+
+  const [token, setToken] = useState<string | null>(() => {
+    const savedToken = localStorage.getItem("token");
+    if (!savedToken || savedToken === "undefined" || savedToken === "null") {
+      return null;
     }
-  }, []);
+    return savedToken;
+  });
+
+  // тримаємо axios у синхроні з токеном
+  useEffect(() => {
+    setAuthToken(token);
+  }, [token]);
 
   const handleLogin = (u: User, t: string) => {
     setUser(u);
     setToken(t);
-    setAuthToken(t);
     localStorage.setItem("token", t);
     localStorage.setItem("user", JSON.stringify(u));
   };
@@ -39,7 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleLogout = () => {
     setUser(null);
     setToken(null);
-    setAuthToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
   };
