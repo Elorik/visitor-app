@@ -24,6 +24,10 @@ const REVERSE_STATUS_MAP: Record<OrderStatus, string> = {
   "ready": "COMPLETED"
 };
 
+interface AdminOrder extends Order {
+  user_info?: { username: string; email: string } | null;
+}
+
 export function AdminPage() {
   const [token, setToken] = useState<string | null>(localStorage.getItem("authToken"));
   const [activeTab, setActiveTab] = useState<"menu" | "orders">("menu");
@@ -40,7 +44,7 @@ export function AdminPage() {
     name: "", description: "", price: 0, category: "pizza", is_available: true,
   });
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
 
   useEffect(() => {
     if (token) {
@@ -57,7 +61,9 @@ export function AdminPage() {
         const mappedDishes: Dish[] = rawData.map((d: any) => ({
           ...d,
           imageUrl: d.photo,
-          category: d.category?.name || "pizza"
+          category: typeof d.category === 'object' ? d.category.name : d.category,
+          rating: d.rating || 0,
+          tags: d.tags ? d.tags.split(',') : []
         }));
         setDishes(mappedDishes);
       }
@@ -71,13 +77,14 @@ export function AdminPage() {
       });
       if (res.ok) {
         const rawData = await res.json();
-        const mappedOrders: Order[] = rawData.map((o: any) => ({
+        const mappedOrders: AdminOrder[] = rawData.map((o: any) => ({
           id: o.id,
           created_at: o.date,
           total: Number(o.sums),
           status: STATUS_MAP[o.status] || "new",
+          user_info: o.user_info || null,
           items: o.items.map((i: any) => ({
-            dish: { name: i.dish_name },
+            dish: { name: i.dish_name } as Dish,
             quantity: i.quantity,
             price: Number(i.price)
           }))
@@ -279,6 +286,7 @@ export function AdminPage() {
                   <thead>
                   <tr style={{ borderBottom: "1px solid #333", color: "#888" }}>
                     <th style={{ padding: "10px" }}>ID</th>
+                    <th style={{ padding: "10px" }}>Клієнт</th>
                     <th style={{ padding: "10px" }}>Статус</th>
                     <th style={{ padding: "10px" }}>Склад</th>
                     <th style={{ padding: "10px" }}>Сума</th>
@@ -289,6 +297,18 @@ export function AdminPage() {
                   {orders.map(order => (
                       <tr key={order.id} style={{ borderBottom: "1px solid #222" }}>
                         <td style={{ padding: "10px", color: "#666" }}>#{order.id}</td>
+
+                        <td style={{ padding: "10px" }}>
+                          {order.user_info ? (
+                              <>
+                                <div style={{ fontWeight: "bold", color: theme.gold }}>{order.user_info.username}</div>
+                                <div style={{ fontSize: "12px", color: "#666" }}>{order.user_info.email}</div>
+                              </>
+                          ) : (
+                              <div style={{ color: "#666", fontStyle: "italic" }}>Гість</div>
+                          )}
+                        </td>
+
                         <td style={{ padding: "10px" }}>
                           <select
                               value={order.status}
