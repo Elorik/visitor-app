@@ -1,15 +1,20 @@
+// src/pages/CheckoutPage.tsx
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { createOrder } from "../api/orders";
 
+declare global {
+  interface Window {
+    voiceCheckoutConfirm?: () => void;
+  }
+}
+
 export function CheckoutPage() {
   const { user } = useAuth();
   const { items, total, clear } = useCart();
   const navigate = useNavigate();
-
-  if (!items.length) return <div>Кошик порожній.</div>;
-  if (!user) return <div>Потрібно увійти, щоб оформити замовлення.</div>;
 
   const handleConfirm = async () => {
     try {
@@ -20,11 +25,25 @@ export function CheckoutPage() {
         }))
       );
     } catch {
-      // для захисту проекта, якщо бек не піднятий, просто показати успіх
+      // ok для захисту
     }
     clear();
     navigate("/profile");
   };
+
+  // ✅ hooks тільки зверху, без conditional
+  useEffect(() => {
+    window.voiceCheckoutConfirm = () => {
+      void handleConfirm();
+    };
+    return () => {
+      delete window.voiceCheckoutConfirm;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, total, user]);
+
+  if (!items.length) return <div>Кошик порожній.</div>;
+  if (!user) return <div>Потрібно увійти, щоб оформити замовлення.</div>;
 
   return (
     <div>

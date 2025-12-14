@@ -45,4 +45,11 @@ export interface VoiceFilters {
   category: string | null;
   maxPrice: number | null;
   tags: string[];
+
+  query?: string | null;
+  ratingFrom?: number | null;
+  sort?: "rating_desc" | "price_asc" | "price_desc" | null;
+
+  priceTo?: number | null;
+  price?: number | null;
 }

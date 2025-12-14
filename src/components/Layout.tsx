@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { AnnaLogo } from "./AnnaLogo";
+import { VoiceOrchestrator } from "../voice/VoiceOrchestrator"; // ✅ додай
 
 export function Layout() {
   const { user, logout } = useAuth();
@@ -13,7 +14,6 @@ export function Layout() {
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const userInitial = user?.username?.[0]?.toUpperCase() ?? "U";
 
-  // плавність між сторінками
   useEffect(() => {
     document.body.classList.add("page-fade");
     const t = setTimeout(
@@ -28,15 +28,14 @@ export function Layout() {
 
   return (
     <div className="app-root layout-wrapper">
+      <VoiceOrchestrator /> {/* ✅ ОДИН раз на весь застосунок */}
       {/* HEADER */}
       <header className="site-header">
         <div className="site-header-inner">
-          {/* лого зліва */}
           <Link to="/" className="site-logo">
             <AnnaLogo className="anna-logo" />
           </Link>
 
-          {/* нав по центру */}
           <nav className="site-nav">
             <NavLink to="/" className={navClass} end>
               Головна
@@ -57,7 +56,6 @@ export function Layout() {
             )}
           </nav>
 
-          {/* правий край – юзер + кнопка */}
           <div className="site-header-right">
             {user && (
               <div className="user-chip">
@@ -78,13 +76,9 @@ export function Layout() {
           </div>
         </div>
       </header>
-
-      {/* MAIN */}
       <main className="app-main">
         <Outlet />
       </main>
-
-      {/* FOOTER */}
       <footer className="site-footer fixed-footer">
         <div className="site-footer-inner">
           <div className="site-footer__left">

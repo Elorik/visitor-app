@@ -1,4 +1,5 @@
 interface Props {
+  categories: string[];
   category: string;
   setCategory: (v: string) => void;
   maxPrice: string;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function FiltersBar({
+  categories,
   category,
   setCategory,
   maxPrice,
@@ -23,11 +25,11 @@ export function FiltersBar({
         onChange={(e) => setCategory(e.target.value)}
       >
         <option value="all">Усі категорії</option>
-        <option value="pizza">Піца</option>
-        <option value="soup">Супи</option>
-        <option value="dessert">Десерти</option>
-        <option value="salad">Салати</option>
-        <option value="drink">Напої</option>
+        {categories.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
       </select>
 
       <input
