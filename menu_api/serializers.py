@@ -86,7 +86,11 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
-        user = self.context['request'].user
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            user = request.user
+        else:
+            user = None
 
         # створюємо замовлення без суми
         order = Order.objects.create(user=user, **validated_data)

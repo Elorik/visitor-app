@@ -66,54 +66,23 @@ class DishViewSet(viewsets.ModelViewSet):
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    # 👇 2. Розумна фільтрація
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        user = self.request.user
 
-    def create(self, request, *args, **kwargs):
-        user = request.user
-        items_data = request.data.get("items")
+        if not user.is_authenticated:
+            return Order.objects.none()
 
-        if not isinstance(items_data, list) or not items_data:
-            return Response(
-                {"detail": "Поле 'items' обов'язкове і має бути непорожнім масивом."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if user.is_staff:
+            return Order.objects.all().order_by('-date')
 
-        order = Order.objects.create(user=user, status="NEW")
-        total_sum = 0
-
-        for item in items_data:
-            dish_id = item.get("dish")
-            quantity = item.get("quantity", 1)
-
-            if not dish_id:
-                continue
-
-            try:
-                dish = Dish.objects.get(pk=dish_id)
-            except Dish.DoesNotExist:
-                continue
-
-            qty = max(int(quantity), 1)
-            price = dish.price
-
-            OrderItem.objects.create(
-                order=order,
-                dish=dish,
-                quantity=qty,
-                price=price,
-            )
-            total_sum += price * qty
-
-        order.sums = total_sum
-        order.save()
-
-        serializer = self.get_serializer(order)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
+        return Order.objects.filter(user=user).order_by('-date')
 
 
 class OrderStatusUpdateAPIView(generics.UpdateAPIView):
@@ -125,9 +94,11 @@ class OrderStatusUpdateAPIView(generics.UpdateAPIView):
         instance = self.get_object()
         new_status = request.data.get('status')
 
-        if not new_status or new_status not in dict(Order.STATUS_CHOICES).keys():
+        valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
+
+        if not new_status or new_status not in valid_statuses:
             return Response(
-                {"error": "Необхідно надати коректний статус."},
+                {"error": f"Некоректний статус. Доступні: {valid_statuses}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -167,6 +138,7 @@ class ReviewCreateAPIView(generics.CreateAPIView):
 
 class RegisterAPIView(generics.GenericAPIView):
     serializer_class = RegisterSerializer
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -191,11 +163,12 @@ class LoginAPIView(ObtainAuthToken):
         # стандартна перевірка логіну/пароля
         response = super().post(request, *args, **kwargs)
         token = Token.objects.get(key=response.data["token"])
-        user: User = token.user
+        user = token.user
 
         return Response({
             "token": token.key,
             "user": UserSerializer(user).data,
+            "is_staff": user.is_staff
         })
 
 class DishReviewsListAPIView(generics.ListAPIView):
