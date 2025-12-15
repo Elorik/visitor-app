@@ -1,18 +1,11 @@
-// FILE: src/components/WaiterWidget.tsx
+/// FILE: src/components/WaiterWidget.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { WaiterState } from "../types/waiter";
 
 import introVideo from "../assets/cup_intro.webm?url";
 import idleVideo from "../assets/cup_idle.webm?url";
 import listeningVideo from "../assets/cup_listening.webm?url";
 import speakingVideo from "../assets/cup_speaking.webm?url";
-
-export type WaiterState =
-  | "intro"
-  | "idle"
-  | "listening"
-  | "thinking"
-  | "speaking"
-  | "error";
 
 declare global {
   interface Window {
@@ -25,6 +18,7 @@ export function WaiterWidget() {
   const [state, setState] = useState<WaiterState>("intro");
   const stateRef = useRef<WaiterState>("intro");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     stateRef.current = state;
@@ -44,26 +38,64 @@ export function WaiterWidget() {
     if (state === "intro") return introVideo;
     if (state === "speaking") return speakingVideo;
     if (state === "listening") return listeningVideo;
-
-    // thinking/error без нових відео: thinking як listening, error як idle
     if (state === "thinking") return listeningVideo;
     return idleVideo;
   }, [state]);
 
-  const playLoop = (delayMs: number) => {
-    window.setTimeout(() => {
-      const v = videoRef.current;
-      if (!v) return;
-      if (stateRef.current !== state) return;
+  const clearTimer = () => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
 
-      try {
-        v.currentTime = 0;
-        void v.play();
-      } catch {
-        // ignore
+  const safePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    try {
+      v.currentTime = 0;
+      const p = v.play();
+      if (p && typeof (p as Promise<void>).catch === "function") {
+        (p as Promise<void>).catch(() => {});
       }
+    } catch {
+      // ignore
+    }
+  };
+
+  const playLoop = (delayMs: number) => {
+    clearTimer();
+    timerRef.current = window.setTimeout(() => {
+      if (stateRef.current !== state) return;
+      safePlay();
     }, delayMs);
   };
+
+  // КЛЮЧОВЕ: при зміні src — робимо load(), потім play()
+  useEffect(() => {
+    clearTimer();
+
+    const v = videoRef.current;
+    if (!v) return;
+
+    try {
+      v.pause();
+      v.removeAttribute("src"); // скидає декодер/кадри
+      v.load();
+
+      v.src = videoSrc;
+      v.load(); // примусово перечитати src
+
+      v.currentTime = 0;
+      const p = v.play();
+      if (p && typeof (p as Promise<void>).catch === "function") {
+        (p as Promise<void>).catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  }, [videoSrc]);
 
   const handleVideoEnd = () => {
     const s = stateRef.current;
@@ -76,7 +108,7 @@ export function WaiterWidget() {
     if (s === "idle") playLoop(2500);
     if (s === "listening" || s === "thinking") playLoop(250);
 
-    // speaking/error — не лупимо агресивно
+    // speaking: loop атрибутом, тут не чіпаємо
     if (s === "error") playLoop(1200);
   };
 
@@ -98,11 +130,11 @@ export function WaiterWidget() {
       <div className="waiter-avatar">
         <video
           ref={videoRef}
-          key={videoSrc}
           src={videoSrc}
           autoPlay
           muted
           playsInline
+          loop={state === "speaking"}
           onEnded={handleVideoEnd}
           className={`waiter-video ${state}`}
           style={{

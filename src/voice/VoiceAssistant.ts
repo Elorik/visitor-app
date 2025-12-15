@@ -1,5 +1,6 @@
 // FILE: src/voice/VoiceAssistant.ts
 import type { VoiceFilters } from "../types";
+import type { WaiterState } from "../types/waiter";
 import {
   emitVoiceAction,
   emitVoiceFilters,
@@ -10,8 +11,6 @@ import {
 } from "./VoiceIntegration";
 
 const DEFAULT_LANG = "uk-UA";
-
-type WaiterState = "intro" | "idle" | "listening" | "speaking";
 
 type SpeechRecognitionResultLike = { transcript?: string };
 type SpeechRecognitionAlternativeListLike = { 0?: SpeechRecognitionResultLike };
@@ -41,7 +40,7 @@ declare global {
     webkitSpeechRecognition?: SpeechRecognitionCtor;
     SpeechRecognition?: SpeechRecognitionCtor;
 
-    setWaiterState?: (s: WaiterState) => void;
+    setWaiterState?: (state: WaiterState) => void;
 
     // глобальні керування
     voiceStart?: () => void;
@@ -109,11 +108,21 @@ export class VoiceAssistant {
     rec.onstart = () => this.setState("listening");
 
     rec.onend = () => {
+      // якщо зараз іде TTS — не перебивай speaking
+      if (this.speaking) {
+        this.setState("speaking");
+        return;
+      }
       this.setState("idle");
       this.maybeRestart();
     };
 
     rec.onerror = () => {
+      // якщо зараз іде TTS — не перебивай speaking
+      if (this.speaking) {
+        this.setState("speaking");
+        return;
+      }
       this.setState("error");
       this.maybeRestart();
     };
@@ -150,9 +159,7 @@ export class VoiceAssistant {
       }
 
       this.setState("error");
-      this.reply(
-        "Не зрозумів команду. Скажи: скинь фільтри, або відкрий кошик."
-      );
+      this.reply("Не зрозумів команду. Скажи: чіткіше.");
     };
 
     this.recognition = rec;
@@ -253,6 +260,7 @@ export class VoiceAssistant {
       // ignore
     }
     this.speaking = false;
+    this.setState("idle");
   }
 }
 
